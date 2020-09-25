@@ -7,6 +7,7 @@
 #
 import argparse
 import statistics
+import matplotlib.pyplot as plt
 import simulation
 import assign
 import estimate
@@ -25,7 +26,6 @@ def read_weights(name):
                 weights.append(int(line.strip()))
     return weights
 
-
 # The main program.
 # Set up and parse command-line arguments.
 ap = argparse.ArgumentParser()
@@ -34,8 +34,10 @@ ap.add_argument("-c", "--cars",  default=6, help="Number of cars.", type=int)
 ap.add_argument("-b", "--boxcap", default=1000, help="Box capacity.",type=int)
 ap.add_argument("-t", "--time", default=0, help="Max allocation time.",type=float)
 ap.add_argument("-f", "--file", default='weights.txt', help="Weight file.")
-ap.add_argument("-i", "--improved", help="Use improved heuristic", action="store_true")
-ap.add_argument("-d", "--debug", help="Increase output verbosity", action="store_true")
+ap.add_argument("-n", "--number", default=0, help="Number of items to simulate (0 indicating all).", type=int )
+ap.add_argument("-p", "--plot", help="Plot the giveaway estimator function (and exit).", action="store_true")
+ap.add_argument("-i", "--improved", help="Use improved heuristic.", action="store_true")
+ap.add_argument("-d", "--debug", help="Increase output verbosity.", action="store_true")
 args = vars(ap.parse_args())
 print(args)
 
@@ -45,18 +47,31 @@ avg = statistics.mean(weights)
 std = statistics.stdev(weights)
 print( "Read in weight of", len(weights), "items (", avg, round(std,2), ")")
 
-# Run the simulation.
+# Get the heuristic for estimating future giveaway. Plot, if asked to.
 if args['improved']:
     giveaway_estimator = estimate.InformedEstimator(args['gates'], args['boxcap'], avg, std)
 else:
     giveaway_estimator = estimate.Estimator(args['gates'], args['boxcap'], avg, std)
+if args['plot']:
+    D = []
+    for c in range(0,args['boxcap']):
+        D.append(giveaway_estimator.get_giveaway([c]))
+    plt.plot(D)
+    plt.show()
+    exit()
+
+# Run the simulation
 assigner = assign.Assign(args['debug'], giveaway_estimator)
 sim = simulation.Simulation(args['gates'],args['cars'],args['boxcap'])
 sim.reset(assigner.assign, args['time'])
+n = 0
 for w in weights:
     sim.step(w)
     if (args['debug']):
         print(sim)
+    n+=1
+    if args['number'] > 0 and n >= args['number']:
+        break;
 for i in range(len(sim.cars)):
     sim.step(0)
     if (args['debug']):
@@ -73,3 +88,6 @@ if n > 0:
     print('Max: ', max(sim.get_boxes()))
     print('Time:', sim.get_total_time())
     print(sim.get_boxes())
+
+
+

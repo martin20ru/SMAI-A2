@@ -23,14 +23,14 @@ class Simulation:
         self.total_time = 0
 
     def __str__(self):
-        s = 'T: ' + str(self.tick)
-        s += '\nC: '
+        s = '{:5d} '.format( self.tick )
+        s += '  C: ['
         for c in self.cars:
-            s +=  ' ' + str(c)
-        s += '\nG: '
+            s += ' {:3d}'.format(c)
+        s += ']  G: ['
         for g in self.gates:
-            s +=  ' ' + str(g)
-        s += '\nB: ' + str(self.boxes) + '\n'
+            s +=  ' {:5d}'.format(g)
+        s += ']   B:' + str(self.boxes)
         return s
 
     def reset(self, assign_func, max_time):
@@ -59,7 +59,7 @@ class Simulation:
                 print('Warning: assignment took to long, assigning to box at gate 0.', end-start)
                 gate = 0
             self.gates[gate] += self.cars[0]
-            if self.gates[gate] > self.capacity:
+            if self.gates[gate] >= self.capacity:
                 self.boxes.append(self.gates[gate])
                 self.gates[gate] = 0
                 filled = True

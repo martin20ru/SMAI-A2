@@ -1,11 +1,14 @@
 from timeit import default_timer as timer
 
-class Assign:
 
+class Assign:
     def __init__(self, debug, estimator):
         self.debug = debug
         self.estimator = estimator
         return
+
+    def get_estimator(self):
+        return self.estimator
 
     def assign(self, cars, gates, capacity, time):
         """
@@ -13,10 +16,9 @@ class Assign:
         :param cars: List with weight of items.
         :param gates: List with weight of boxes at gates.
         :param capacity: Box capacity
-        :param timer: Maximum time (in seconds) allowed for allocation; if 0, then there are no time-limits.
+        :param time: Maximum time (in seconds) allowed for allocation; if 0, then there are no time-limits.
         :return: The gate number to assign item in car[0]
         """
-
         def time_is_up(start, time):
             if time == 0:
                 return False
@@ -42,8 +44,6 @@ class Assign:
 
         # IMPLEMENT THIS ROUTINE
         # Suggestion: Use an iterative-deepening version of DFBnB.
-        # Call 'self.estimator.get_giveaway(gates)' for the heuristic estimate of future giveaway.
+        # Call 'self.estimator.get_giveaway(gates)' for the heuristic estimate of future giveaway
 
-        ...
-        return 0  # Return the gate to dispatch the item in the first car (car[0]).
-
+        return 0
