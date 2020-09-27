@@ -1,4 +1,4 @@
-import math
+# import math
 
 
 class Estimator:
@@ -12,7 +12,7 @@ class Estimator:
 
     def get_giveaway(self, gates):
         # Estimate the future giveaway for the partially filled boxes at the gates.
-        return 0
+        return [0 for _ in gates]
 
 
 class InformedEstimator(Estimator):
@@ -29,4 +29,5 @@ class InformedEstimator(Estimator):
     def get_giveaway(self, gates):
         # You implement this.
         # Estimate the future giveaway for the partially filled boxes at the gates.
-        return 0
+
+        return [max(0, weight - (self.capacity - self.avg)) for weight in gates]
