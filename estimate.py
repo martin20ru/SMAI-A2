@@ -30,4 +30,5 @@ class InformedEstimator(Estimator):
         # You implement this.
         # Estimate the future giveaway for the partially filled boxes at the gates.
 
-        return [max(0, weight - (self.capacity - self.avg)) for weight in gates]
+        k = 32
+        return [weight//k + max(0, (- (weight//k)) + weight - (self.capacity - self.avg)) for weight in gates]
