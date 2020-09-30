@@ -47,8 +47,6 @@ class InformedEstimator(Estimator):
             estimator = [floor(exp(k_exp * w / cap) * base_estimator[w] * (avg / base_estimator[-1])) for w in range(cap)]
             return estimator
 
-        ################################################################################################################
-
         # polynomially increasing gauss bells with spikes up and down
         if heuristic == "poly_gauss":
             k_ploy = 4
@@ -58,23 +56,16 @@ class InformedEstimator(Estimator):
             estimator = [floor((w / cap) * base_estimator[w] * (avg / base_estimator[-1])) for w in range(cap)]
             return estimator
 
-        ################################################################################################################
-
         # gauss bells with increasing height * x
         if heuristic == "gauss_bells":
             base_estimator = sum([(norm.pdf(range(cap), cap - avg * t, std)) *
                                   (times - t) for t in range(times)])
             return [floor(base_estimator[w] * (avg / base_estimator[-1])) for w in range(cap)]
 
-        ################################################################################################################
-
-
         # leaky ReLU
         if heuristic == "leaky_ReLU":
             k = 64  # 0todo find the best k
             return [w//k + max(0, (-w//k) + w - (cap - avg)) for w in range(cap)]
-
-        ################################################################################################################
 
         # ReLU
         if heuristic == "ReLU":
