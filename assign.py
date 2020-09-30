@@ -57,7 +57,8 @@ class Assign:
                     undo_assign(cars[_], assign_table[_], infos[_])
                 else:
                     break
-            # TODO: clear assign_table as well (or update it for next car)
+            # TODO: clear assign_table as well (cannot update it for next car if assign is stateless,
+            #  otherwise would need to add variablesthat are persistent between cars)
             return
 
         def recursive_dfbnb1(current_depth, last_giveaway_depth):
@@ -101,17 +102,84 @@ class Assign:
             else:
                 return
 
+        def rec_dfbnb(current_depth, last_giveaway_depth, best_fit):
+            """Recursive Depth-First Branch-and-Bound search (second try)
+
+            :param current_depth: current search depth = number of cars
+            :param last_giveaway_depth:
+            :param best_fit: best solution for current iteration
+            :return:
+            """
+            for current_gate in range(len(gates)):
+                infos[current_depth] = do_assign(cars[current_depth], current_gate)
+                giveaway_certain = sum([infos[_][1] for _ in range(current_depth+1)])
+                current_fit[current_depth] = current_gate
+
+                # if the first box fills the gate, immediately do it
+                if current_depth == 0:
+                    if infos[current_depth] == (True, 0):
+                        best_giveaway[0] = current_gate
+                        last_giveaway_depth = 0
+                        best_fit[0] = 0
+                        undo_assign(cars[0], current_gate, (True, 0))
+                        return
+
+                # prune too costly branches early
+                if giveaway_certain > best_giveaway[current_depth]:
+                    undo_assign(cars[current_depth], current_gate, infos[current_depth])
+                    continue  # to next gate
+
+                # go deeper
+                if current_depth < depth:
+                    rec_dfbnb(current_depth+1, last_giveaway_depth, best_fit)
+
+                # reached the iteration's depth to be explored
+                else:
+                    giveaway_estimate = sum(self.estimator.get_giveaway(gates))
+                    # found a better solution
+                    if giveaway_certain + giveaway_estimate < best_giveaway[current_depth]:
+                        best_giveaway[current_depth] = giveaway_certain + giveaway_estimate
+                        last_giveaway_depth = current_depth
+                        best_fit[:] = current_fit[:]
+                        # optimal solution
+                        if best_giveaway[0] == 0:
+                            return
+
+                # don't forget to undo the weight assignment to gate !!!
+                undo_assign(cars[current_depth], current_gate, infos[current_depth])
+                if time_is_up(start, time):
+                    return
+
         # IMPLEMENT THIS ROUTINE
         # Suggestion: Use an iterative-deepening version of DFBnB.
         # Call 'self.estimator.get_giveaway(gates)' for the heuristic estimate of future giveaway
         start = timer()
         max_depth = len(cars)
+        worst_giveaway = capacity * max_depth
+
+        current_fit = [-1 for _ in range(max_depth)]
+        best_fit_list = [-1 for _ in range(max_depth)]  # index=car, value=gate
         best_fit = [-1 for _ in range(max_depth)]  # index=car, value=gate
-        giveaways = [0 for _ in range(len(gates))]  # index=gate, value=giveaway
         infos = [(False, 0) for _ in range(max_depth)]  # index=car, value=(full,giveaway)
         assign_table = [-1 for _ in range(max_depth)]  # index=car, value=gate
+        best_giveaway = [worst_giveaway for _ in range(max_depth)]
+
+        depth = 0
+
+        while depth < max_depth:
+            if time_is_up(start, time):
+                break
+            # reset some variables after every iteration
+            best_giveaway = [worst_giveaway for _ in range(max_depth)]
+            # todo don't reset but save it and remove recursion
+
+            rec_dfbnb(0, -1, best_fit_list)
+            depth += 1
+        return best_fit_list[0]
+
+        # for recursive_dfbnb1
         max_giveaway = capacity * max_depth
-        best_giveaway = [capacity * max_depth for _ in range(max_depth)]
+        giveaways = [0 for _ in range(len(gates))]  # index=gate, value=giveaway
         depth = 1
         best = 0
 
