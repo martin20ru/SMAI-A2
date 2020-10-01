@@ -1,4 +1,4 @@
-from math import floor, exp
+from math import exp
 # if not using the anaconda distribution, you can install this package with 'pip install -U scipy'
 from scipy.stats import norm
 
@@ -33,43 +33,67 @@ class InformedEstimator(Estimator):
         avg = self.avg
         std = self.std
 
-        times = int(cap // avg)  # number of fillets that fit in a box without giveaway (on average)
-        heuristics = ("exp_gauss", "poly_gauss", "gauss_bells", "leaky_ReLU", "ReLU")
+        times = int(cap / avg)  # number of fillets that fit in a box without giveaway (on average)
+        heuristics = ("new_gauss", "exp_gauss", "poly_gauss", "gauss_bells", "leaky_ReLU", "ReLU")
         heuristic = heuristics[0]  # choose heuristic
+
+        if heuristic == "new_gauss":
+            k_exp = times
+            estimator_base = norm.pdf(range(cap), cap, std)
+            estimator_peak = sum([(norm.pdf(range(cap), cap - avg*t, std)) for t in range(times)])
+            estimator = estimator_base - estimator_peak
+            estimator = [exp(k_exp * w / cap) * estimator[w] for w in range(cap)]
+            # align and rescale
+            estimator -= min(estimator)
+            estimator = [int(estimator[w] * (avg/estimator[-1]) + avg/2/estimator[0]) for w in range(cap)]
+            estimator = [estimator[w] * w/cap for w in range(cap)]
+            return estimator
 
         # exponentially increasing gauss bells with spikes up and down
         if heuristic == "exp_gauss":
-            # TODO try different values for k
+            # OTODO try different values for k
             k_exp = times
-            base_estimator = sum([(norm.pdf(range(cap), cap - avg * (2 * t), std))
-                                  - (norm.pdf(range(cap), cap - avg * (2 * t - 1), std))
-                                  for t in range(times)])
-            estimator = [floor(exp(k_exp * w / cap) * base_estimator[w] * (avg / base_estimator[-1])) for w in range(cap)]
+            #estimator2 = sum([(norm.pdf(range(cap), cap - avg*t, std)) for t in range(times)])
+            #estimator *= estimator2
+            estimator = sum([(norm.pdf(range(cap), cap - avg * (2 * t), std))
+                             - (norm.pdf(range(cap), cap - avg * (2 * t - 1), std))
+                             for t in range(times)])
+            estimator = [exp(k_exp * w / cap) * estimator[w] for w in range(cap)]
+            # align and rescale
+            estimator -= min(estimator)
+            estimator = [int(estimator[w] * (avg/estimator[-1]) + avg/2/estimator[0]) for w in range(cap)]
             return estimator
 
         # polynomially increasing gauss bells with spikes up and down
-        if heuristic == "poly_gauss":
-            k_ploy = 4
-            base_estimator = sum([(norm.pdf(range(cap), cap - avg * (2 * t), std))
-                                  - (norm.pdf(range(cap), cap - avg * (2 * t - 1), std))
-                                  for t in range(times)]) ** k_ploy
-            estimator = [floor((w / cap) * base_estimator[w] * (avg / base_estimator[-1])) for w in range(cap)]
+        elif heuristic == "poly_gauss":
+            k_poly = 4
+            estimator = sum([((norm.pdf(range(cap), cap - avg * (2 * t), std))
+                             - (norm.pdf(range(cap), cap - avg * (2 * t - 1), std)))
+                             for t in range(times)])
+            [print(w, estimator[w]) for w in range(len(estimator)) if estimator[w] != estimator[w]]
+            # align and rescale
+            estimator -= min(estimator)
+            estimator = [estimator[w] * w ** k_poly for w in range(cap)]
+            estimator = [int(estimator[w] * (avg/estimator[-1])) for w in range(cap)]
             return estimator
 
         # gauss bells with increasing height * x
-        if heuristic == "gauss_bells":
-            base_estimator = sum([(norm.pdf(range(cap), cap - avg * t, std)) *
-                                  (times - t) for t in range(times)])
-            return [floor(base_estimator[w] * (avg / base_estimator[-1])) for w in range(cap)]
+        elif heuristic == "gauss_bells":
+            estimator = sum([(norm.pdf(range(cap), cap - avg * t, std)) *
+                             (times - t) for t in range(times)])
+            return [int(avg / 2 + estimator[w] * (avg / estimator[-1])) for w in range(cap)]
 
         # leaky ReLU
-        if heuristic == "leaky_ReLU":
-            k = 64  # 0todo find the best k
+        elif heuristic == "leaky_ReLU":
+            k = 64  # OTODO find the best k
             return [w//k + max(0, (-w//k) + w - (cap - avg)) for w in range(cap)]
 
         # ReLU
-        if heuristic == "ReLU":
+        elif heuristic == "ReLU":
             return [max(0, w - (cap - avg)) for w in range(cap)]
+
+        else:
+            AssertionError("Please choose one of the above heuristics")
 
     def get_giveaway(self, gates):
         # You implement this.
