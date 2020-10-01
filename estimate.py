@@ -39,6 +39,7 @@ class InformedEstimator(Estimator):
 
         if heuristic == "new_gauss":
             k_exp = times
+            k_poly = 3
             estimator_base = norm.pdf(range(cap), cap, std)
             estimator_peak = sum([(norm.pdf(range(cap), cap - avg*t, std)) for t in range(times)])
             estimator = estimator_base - estimator_peak
@@ -46,7 +47,7 @@ class InformedEstimator(Estimator):
             # align and rescale
             estimator -= min(estimator)
             estimator = [int(estimator[w] * (avg/estimator[-1]) + avg/2/estimator[0]) for w in range(cap)]
-            estimator = [estimator[w] * w/cap for w in range(cap)]
+            estimator = [estimator[w] * (w ** k_poly/cap ** k_poly) for w in range(cap)]
             return estimator
 
         # exponentially increasing gauss bells with spikes up and down
